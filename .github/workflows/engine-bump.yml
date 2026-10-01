@@ -1,0 +1,56 @@
+# Opens a pull request when the scanner publishes a release newer than the one
+# this package pins.
+#
+# This exists because the alternative is remembering. The Claude plugin sat
+# pinned to 0.1.12 after 0.1.13 shipped, and nothing surfaced it — the plugin
+# kept working, just on an old engine. A pull request is the cheapest thing
+# that makes the gap visible without taking the choice away: nothing ships
+# until a human merges it.
+name: engine-bump
+
+on:
+  schedule:
+    - cron: '0 7 * * 1'     # Mondays, 07:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: versions
+        run: |
+          CURRENT=$(node -p "require('./package.json').trustabl.engineVersion")
+          LATEST=$(curl -sf https://api.github.com/repos/trustabl/agent-reliability-analyzer/releases/latest \
+                   | node -pe 'JSON.parse(require("fs").readFileSync(0,"utf8")).tag_name.replace(/^v/,"")')
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          echo "latest=$LATEST"   >> "$GITHUB_OUTPUT"
+          echo "Pinned $CURRENT, latest $LATEST"
+      - name: Bump the pin
+        if: steps.versions.outputs.current != steps.versions.outputs.latest
+        run: |
+          node -e '
+            const fs = require("fs");
+            const p = JSON.parse(fs.readFileSync("package.json", "utf8"));
+            p.trustabl.engineVersion = process.argv[1];
+            fs.writeFileSync("package.json", JSON.stringify(p, null, 2) + "\n");
+          ' "${{ steps.versions.outputs.latest }}"
+      - uses: peter-evans/create-pull-request@v7
+        if: steps.versions.outputs.current != steps.versions.outputs.latest
+        with:
+          branch: chore/engine-${{ steps.versions.outputs.latest }}
+          title: "chore: pin the engine to ${{ steps.versions.outputs.latest }}"
+          commit-message: "chore: pin the engine to ${{ steps.versions.outputs.latest }}"
+          body: |
+            The scanner released `${{ steps.versions.outputs.latest }}`; this package pins
+            `${{ steps.versions.outputs.current }}`.
+
+            Merging changes which engine release the package downloads on first use. It does
+            not publish anything — that still needs a `v*` tag on this repository.
+
+            Read the engine's release notes before merging. A release that changes scan
+            output may need the summariser updating in the same pull request.

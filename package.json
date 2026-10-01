@@ -1,0 +1,59 @@
+{
+  "name": "@trustabl/ai-sdk",
+  "version": "0.1.0",
+  "description": "Scan a repository for AI-agent reliability and safety gaps from inside an AI SDK agent.",
+  "keywords": [
+    "ai-sdk",
+    "vercel",
+    "agents",
+    "static-analysis",
+    "security",
+    "reliability",
+    "mcp"
+  ],
+  "homepage": "https://trustabl.ai/docs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/trustabl/ai-sdk-tool.git"
+  },
+  "bugs": "https://github.com/trustabl/ai-sdk-tool/issues",
+  "license": "Apache-2.0",
+  "author": "Trustabl",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "trustabl": {
+    "engineVersion": "0.1.13"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "node --test test/*.test.js",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "ai": ">=5"
+  },
+  "dependencies": {
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "ai": "^7",
+    "typescript": "^5.6.0",
+    "zod": "^3.23.0"
+  }
+}

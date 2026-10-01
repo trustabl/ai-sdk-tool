@@ -1,0 +1,43 @@
+# Publishes @trustabl/ai-sdk on a v* tag. The package version comes from the
+# tag; the engine version it downloads is pinned separately in package.json and
+# maintained by engine-bump.yml. The two move independently on purpose.
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write      # npm provenance
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+      # npm ci before the version stamp: stamping rewrites package.json, and a
+      # package.json out of step with the lockfile makes npm ci fail outright.
+      - run: npm ci --no-audit --no-fund
+      - name: Stamp the version from the tag
+        run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version --allow-same-version
+      - run: npm run build
+      - run: npm test
+      - name: Verify the pinned engine release exists
+        run: |
+          V=$(node -p "require('./package.json').trustabl.engineVersion")
+          URL="https://github.com/trustabl/agent-reliability-analyzer/releases/download/v${V}/checksums.txt"
+          echo "checking $URL"
+          curl -sfIL "$URL" >/dev/null || {
+            echo "::error::engineVersion ${V} has no published release; the package would install and then fail to resolve a binary."
+            exit 1
+          }
+      - run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
