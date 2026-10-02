@@ -34,11 +34,55 @@ A full scan of a large repository exceeds six megabytes of JSON — past what a 
 | `sdks`, `languages` | What the repository actually uses, derived from production code only |
 | `inventory` | Counts of tools, agents, subagents, skills and MCP servers |
 | `score` | Overall readiness, 0 to 1 |
-| `findingCount`, `bySeverity` | Every finding, counted — including the ones not returned |
+| `findingCount`, `bySeverity` | Production findings, counted. `findingCount` always equals the sum of `bySeverity` |
+| `excludedTestPathFindings` | Findings dropped for living in a test path |
+| `belowSeverityFloor` | Production findings below `minSeverity` |
 | `findings` | The ones worth acting on: rule id, severity, title, file, line, suggested fix |
-| `truncated` | `true` when findings were left out, so a partial list is never reported as complete |
+| `truncated` | `true` when `maxFindings` capped the list |
 
 Read the inventory first. If the tool and agent counts look wrong, the scan was pointed at the wrong place and the findings are not yet worth reporting.
+
+## Fixing what it finds
+
+Every finding carries `suggestedFix`, the same remediation text the CLI and the
+Claude plugin use. The agent can act on it directly — give it a file-writing
+tool of your own alongside this one:
+
+```ts
+tools: {
+  scanRepo: scanRepo(),
+  writeFile: yourWriteFileTool,
+}
+```
+
+This package deliberately ships no write tool. An AI SDK agent often runs
+unattended, and a model-driven write primitive is a much larger thing to hand
+out than a scanner. Keeping it on your side means the decision, and whatever
+approval flow your app already has, stays yours.
+
+## Raw results: JSON and SARIF
+
+`scanRepo` summarises because a model cannot read six megabytes. For your own
+code — a dashboard, a SARIF upload, a stored baseline, a diff between two scans
+— use `scan`, which returns the complete document:
+
+```ts
+import { scan } from '@trustabl/ai-sdk';
+
+const result = await scan({ path: '.' });
+console.log(result.findings.length);
+
+// Write it out, in either format
+await scan({ path: '.', outputPath: 'trustabl.json' });
+await scan({ path: '.', format: 'sarif', outputPath: 'trustabl.sarif' });
+```
+
+SARIF 2.1.0 uploads straight to GitHub code scanning. The file written is the
+scanner's own bytes, not a re-serialisation, so it byte-compares against a
+baseline.
+
+They are separate functions on purpose: the raw result cannot reach a context
+window by accident.
 
 ## Options
 

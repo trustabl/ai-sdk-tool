@@ -1,6 +1,6 @@
 {
   "name": "@trustabl/ai-sdk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Scan a repository for AI-agent reliability and safety gaps from inside an AI SDK agent.",
   "keywords": [
     "ai-sdk",

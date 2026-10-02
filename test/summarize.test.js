@@ -54,10 +54,27 @@ test("does not claim truncation when nothing was dropped", () => {
   assert.equal(s.truncated, false);
 });
 
-test("histogram counts every finding, including the ones not returned", () => {
+test("histogram covers production findings only, and the counts reconcile", () => {
+  // The bug this guards: counting test-path findings in the histogram while
+  // excluding them from `findings` produced a summary reading "10 high" beside
+  // a single returned finding. A model reports that as ten high-severity
+  // issues. findingCount must equal the sum of bySeverity, always.
   const s = summarize(raw, opts);
-  assert.equal(s.findingCount, 5);
-  assert.deepEqual(s.bySeverity, { critical: 2, high: 1, medium: 1, low: 1 });
+  assert.equal(s.findingCount, 4, "4 production findings; the 5th is test-origin");
+  assert.deepEqual(s.bySeverity, { critical: 1, high: 1, medium: 1, low: 1 });
+  const summed = Object.values(s.bySeverity).reduce((a, b) => a + b, 0);
+  assert.equal(summed, s.findingCount, "histogram must sum to findingCount");
+});
+
+test("reports what it excluded rather than hiding it", () => {
+  const s = summarize(raw, opts);
+  assert.equal(s.excludedTestPathFindings, 1, "A-5 lives in tests/");
+  assert.equal(s.belowSeverityFloor, 1, "A-4 is low, below the medium floor");
+});
+
+test("every production finding is accounted for exactly once", () => {
+  const s = summarize(raw, { ...opts, maxFindings: 50 });
+  assert.equal(s.findings.length + s.belowSeverityFloor, s.findingCount);
 });
 
 test("carries the inventory so the caller can sanity-check the target", () => {
