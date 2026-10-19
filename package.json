@@ -38,7 +38,7 @@
     "node": ">=18"
   },
   "trustabl": {
-    "engineVersion": "0.1.13"
+    "engineVersion": "0.1.14"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
