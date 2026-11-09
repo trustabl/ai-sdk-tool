@@ -7,6 +7,17 @@ The package version and the scanner it downloads are tracked separately. The
 engine pin lives in `package.json` under `trustabl.engineVersion` and is noted
 below whenever it moves.
 
+## [0.1.2] - 2026-11-09
+
+Engine pin: `0.1.16` (was `0.1.13`).
+
+### Changed
+
+- **The scanner moves to analyzer `0.1.16`.** The package downloads that
+  release on first use and verifies it against its `checksums.txt`, as before.
+  The 0.1.15 pin was merged but never published, so this is the first release
+  since 0.1.1 and takes the engine from 0.1.13 straight to 0.1.16.
+
 ## [0.1.1] - 2026-10-02
 
 Engine pin: `0.1.13` (unchanged).
